@@ -5340,6 +5340,48 @@ var mainGC = function() {
         } catch(e) {gclh_error("Show Log It button",e);}
     }
 
+// ChristianGK CGK
+// Show Log It button in new Search Result
+    if (settings_show_log_it && document.location.href.match(/play\/results\//)) {
+        try {
+            function buildLinksSR() {
+                console.log("Treffer buildLinksSR");
+                var links = document.getElementsByTagName("a");
+                for (var i = 0; i < links.length; i++) {
+                    if (links[i].href.match(/\/geocache\/GC[A-Z0-9]{1,6}/)) { // && links[i].innerHTML.match(/^<span>/)
+                        var match = links[i].href.match(/GC[A-Z0-9]{1,6}/);
+                        var logtext = "<a title='Log it' href='/seek/log.aspx?wp=" + match[0] + "'><img src='/images/stockholm/16x16/add_comment.gif'></a>";
+                        links[i].parentNode.innerHTML = links[i].parentNode.innerHTML+logtext;
+                    }
+                }
+            }
+
+            function buildLinksSR2() {
+                console.log("Treffer buildLinksSR");
+                var gccodes = document.getElementsByClassName("code-display");
+                console.log(gccodes.length);
+                for (var i = 0; i < gccodes.length; i++) {
+                    var logicon = '<a title="Log it" href="/seek/log.aspx?wp=' + gccodes[i].textContent + '" target="_blank"><img src="/images/stockholm/16x16/add_comment.gif" style="height: 24px;width: 24px;"></a>';
+                    document.getElementsByClassName("info-cell")[i].innerHTML = logicon + document.getElementsByClassName("info-cell")[i].innerHTML;
+                }
+            }
+
+            function startSR(waitCount) {
+                console.log("Treffer startSR");
+                if (document.getElementsByClassName("code-display").length > 0) {
+                    //buildLinksSR();
+                    buildLinksSR2();
+                }
+                else {
+                    waitCount++; if (waitCount <= 5000) setTimeout(function(){startSR(waitCount);}, 500);
+                }
+            }
+
+            console.log("Treffer main Search Result");
+            startSR(0);
+        } catch(e) {gclh_error("Show Log It button on search result",e);}
+    }
+
 // Improve pocket queries, nearest lists, recently viewed. Compact layout, favorites percentage.
     if (settings_compact_layout_pqs && document.location.href.match(/\.com\/seek\/nearest\.aspx\?pq=/)) var li0 = "p";
     else if (settings_compact_layout_nearest && document.location.href.match(/\.com\/seek\/nearest\.aspx\?/) && !document.location.href.match(/\.com\/seek\/nearest\.aspx\?pq=/)) var li0 = "n";
