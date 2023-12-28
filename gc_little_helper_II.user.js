@@ -2,9 +2,9 @@
 // @name         GC little helper II
 // @description  Some little things to make life easy (on www.geocaching.com).
 //--> $$000
-// @version      0.15.2
+// @version      0.15.3
 //<-- $$000
-// @copyright    2010-2016 Torsten Amshove, 2016-2023 2Abendsegler, 2017-2021 Ruko2010, 2019-2023 capoaira
+// @copyright    2010-2016 Torsten Amshove, 2016-2024 2Abendsegler, 2017-2021 Ruko2010, 2019-2024 capoaira
 // @author       Torsten Amshove; 2Abendsegler; Ruko2010; capoaira
 // @license      GNU General Public License v2.0
 // @supportURL   https://github.com/2Abendsegler/GClh/issues
@@ -725,8 +725,11 @@ var variablesInit = function(c) {
     c.settings_improve_notifications = getValue("settings_improve_notifications", true);
     c.settings_remove_target_log_form = getValue("settings_remove_target_log_form", false);
     c.settings_remove_target_log_view = getValue("settings_remove_target_log_view", false);
+    c.settings_hide_locked_tbs_log_form = getValue("settings_hide_locked_tbs_log_form", true);
+    c.settings_hide_own_tbs_log_form = getValue("settings_hide_own_tbs_log_form", false);
     c.settings_hide_share_log_button_log_view = getValue("settings_hide_share_log_button_log_view", false);
     c.settings_dashboard_hide_tb_activity = getValue("settings_dashboard_hide_tb_activity", false);
+    c.settings_button_sort_tbs_by_name_log_form = getValue("settings_button_sort_tbs_by_name_log_form", true);
 
     tlc('START userToken');
     try {
@@ -5130,8 +5133,58 @@ var mainGC = function() {
                 }
             } catch(e) {gclh_error("Show additional cache info in improve log form",e);}
 
+            // Hide own or locked trackables.
+            function setNoVisitForHiddenTBs() {
+                var tbsNotNoVisit = $('ul.tb-list li.tb-item.gclh_hideTB .segmented-buttons:first .segmented-item:first:not(.checked)');
+                for (let i=0; i<tbsNotNoVisit.length; i++) {
+                    tbsNotNoVisit[i].click();
+                }
+            }
+            function waitForTbsHide(waitCount) {
+                // Hide TBs.
+                if ($('ul.tb-list li.tb-item:not(.gclh_hideTB_checked)').length > 0) {
+                    var tbs = $('ul.tb-list li.tb-item:not(.gclh_hideTB_checked)');
+                    for (let i=0; i<tbs.length; i++) {
+                        var match = $(tbs[i]).find('.ref-code')[0].innerText.match(/(.*)\|(.*)/);
+                        if (match && match[2]) {
+                            var refCode = match[2].trim();
+                            var trackable = $.grep(pageData.trackables, function(e){return e.referenceCode == refCode;});
+                            if ((settings_hide_locked_tbs_log_form && trackable[0].isLocked == true) || (settings_hide_own_tbs_log_form && trackable[0].owner.userName == global_me)) {
+                                $(tbs[i]).addClass('gclh_hideTB');
+                            }
+                        }
+                        $(tbs[i]).addClass('gclh_hideTB_checked');
+                    }
+                }
+                // Hide complete trackable area if no trackable left over and set no trackables message.
+                if ($('.trackable-inventory .mantine-Accordion-content > div')[0]) {
+                    if ($('ul.tb-list li.tb-item:not(.gclh_hideTB)').length == 0 && !$('.trackable-inventory .mantine-Accordion-content > div').hasClass('gclh_hideTB')) {
+                        $('.trackable-inventory .mantine-Accordion-content > div').addClass('gclh_hideTB');
+                        $('.trackable-inventory .mantine-Accordion-content > div').after('<div class="no-trackables-container" style="display: flex; justify-content: center;">No trackables in your inventory.</div>');
+                    }
+                }
+                // Build events for click to buttons visit all and drop all.
+                var button = $('.tb-inventory-header:first button:not(.gclh_hideTB_event)');
+                for (let i=0; i<button.length; i++) {
+                    $(button[i]).addClass('gclh_hideTB_event');
+                    button[i].addEventListener('click', function(){
+                        setTimeout(function(){setNoVisitForHiddenTBs();}, 10);
+                    });
+                }
+                waitCount++; if (waitCount <= 50) setTimeout(function(){waitForTbsHide(waitCount);}, 200);
+            }
+            try {
+                var isTbHideActiv = false;
+                if (!isTB && !$('.no-trackables-container')[0] && (settings_hide_locked_tbs_log_form || settings_hide_own_tbs_log_form)
+                    && typeof pageData !== 'undefined' && typeof pageData.trackables !== 'undefined' && pageData.trackables.length > 0) {
+                    isTbHideActiv = true;
+                    waitForTbsHide(0);
+                    css += 'ul.tb-list li.tb-item.gclh_hideTB, .trackable-inventory .mantine-Accordion-panel .gclh_hideTB {display: none !important;}';
+                }
+            } catch(e) {gclh_error("Hide own or locked trackables in improve log form",e);}
+
             // Auto visit for TBs.
-            function getTbsAV() {return $('ul.tb-list li.tb-item');}
+            function getTbsAV() {return (isTbHideActiv ? $('ul.tb-list li.tb-item.gclh_hideTB_checked:not(.gclh_hideTB)') : $('ul.tb-list li.tb-item'))}
             function getLogTypeAV() {return $('input[name="logType"]').val();}
             function getTbCodeAV(tb) {return $(tb).find('.tb-stats dd')[1].innerHTML;};
             function getTbActionTypeAV(tb) {
@@ -5214,7 +5267,9 @@ var mainGC = function() {
                     const autovisitObserver = new MutationObserver(function(_, observer) {
                         observer.disconnect();
                         waitForTbsAV(0);
-                        observer.observe($('ul.tb-list')[0], config);
+                        if (is_page('logform')) {
+                            observer.observe($('ul.tb-list')[0], config);
+                        }
                     });
                     autovisitObserver.observe($('ul.tb-list')[0], config);
                 }
@@ -5246,11 +5301,42 @@ var mainGC = function() {
                 waitCount++; if (waitCount <= 50) setTimeout(function(){buildTBHeaderToBottom(waitCount);}, 200);
             }
             try {
-                if (!isTB) {
+                if (!isTB && !$('.no-trackables-container')[0]) {
                     buildTBHeaderToBottom(0);
                     css += '.gclh_tb_header_bottom {border-top: 1px solid rgb(228, 228, 228); padding-bottom: 0px !important; padding-top: 1rem;}';
                 }
             } catch(e) {gclh_error("Replicate TB-Header to bottom in improve log form",e);}
+
+            // Sort trackables by name.
+            var dir = -1;
+            function sortTBListByName() {
+                var ul = $('ul.tb-list')[0];
+                var li = Array.prototype.slice.call(ul.children, 0);
+                dir = dir * -1;
+                li = li.sort(function (a, b) {
+                    var aa = $(a).find('.tb-name a')[0].innerText.trim();
+                    var bb = $(b).find('.tb-name a')[0].innerText.trim();
+                    return dir * (aa .localeCompare(bb));
+                });
+                for(i = 0; i < li.length; ++i) ul.appendChild(li[i]);
+            }
+            function buildTBSortButton(waitCount) {
+                if ($('ul.tb-list')[0] && $('.tb-inventory-header h2:not(.gclh_sortByName)').length > 0) {
+                    var tbHeader = $('.tb-inventory-header h2:not(.gclh_sortByName)');
+                    for (let i=0; i<tbHeader.length; i++) {
+                        $(tbHeader[i]).addClass('gclh_sortByName');
+                        tbHeader[i].innerHTML += '<button class="link-button">Sort by name</button>';
+                        tbHeader[i].children[0].addEventListener('click', sortTBListByName, false);
+                    }
+                }
+                waitCount++; if (waitCount <= 50) setTimeout(function(){buildTBSortButton(waitCount);}, 200);
+            }
+            try {
+                if (!isTB && !$('.no-trackables-container')[0] && settings_button_sort_tbs_by_name_log_form) {
+                    buildTBSortButton(0);
+                    css += '.tb-inventory-header h2.gclh_sortByName button {margin-left: 20px;}';
+                }
+            } catch(e) {gclh_error("Sort trackables by name in improve log form",e);}
 
             // Send Log with F2.
             function buildSendLogWithF2(waitCount) {
@@ -5292,6 +5378,7 @@ var mainGC = function() {
 // Improve log view.
     function runImproveLogView() {
         try {
+            const isTB = document.location.pathname.match(/^\/live\/log\/(gl|tl)[a-z0-9]+/i)[1] === 'TL';
             if (typeof $('#__NEXT_DATA__')[0] !== 'undefined' && $('#__NEXT_DATA__')[0].innerText) {
                 try {
                     var nextData = JSON.parse($('#__NEXT_DATA__')[0].innerText);
@@ -5301,6 +5388,24 @@ var mainGC = function() {
                 }
             }
             let css = '';
+
+            // Build own edit button with real link. Is required for complete pageData on the edit log page.
+            function buildOwnEditButton(waitCount) {
+                if ($('li.masthead-control button[data-testid="edit-log"]')[0] && !$('.gclh_editButton')[0]) {
+                    $($('li.masthead-control button[data-testid="edit-log"]')[0].closest('li')).addClass('gclh_editButton');
+                    var link = 'https://www.geocaching.com/live/geocache/' + pageData.geocache.referenceCode + '/log/' + pageData.referenceCode + '/edit?logType=' + pageData.logType.id;
+                    var button = $( $('.gclh_editButton button')[0] ).clone()[0];
+                    $(button)[0].addEventListener('click', function(){document.location.href = link;});
+                    $('.gclh_editButton button')[0].remove();
+                    $('.gclh_editButton')[0].append(button);
+                }
+                waitCount++; if (waitCount <= 100) setTimeout(function(){buildOwnEditButton(waitCount);}, 100);
+            }
+            try {
+                if (!isTB && typeof pageData !== 'undefined' && typeof pageData.geocache !== 'undefined' && typeof pageData.referenceCode !== 'undefined' && typeof pageData.logType !== 'undefined') {
+                    buildOwnEditButton(0);
+                }
+            } catch(e) {gclh_error("Build own edit button with real link in improve log view",e);}
 
             // Hide social share button.
             function hideSocialShareButton(waitCount) {
@@ -5314,7 +5419,7 @@ var mainGC = function() {
                 if (settings_hide_socialshare) css = 'ul.social-media-buttons {display: none !important;}';
             } catch(e) {gclh_error("Hide socialshare4 in improve log view",e);}
 
-            // Build copy to clipboard icon for logtext.
+            // Build copy to clipboard icon for logtext in cache logs.
             function buildCopyToClipboardForLogtext(waitCount) {
                 if ($('li.meta-data-item:last span.meta-data-label')[0] && !$('#gclh_copyLogtextToClipboard')[0]) {
                     $('li.meta-data-item:last span.meta-data-label').after('<span id="gclh_copyLogtextToClipboard"><span></span></span>');
@@ -5323,7 +5428,11 @@ var mainGC = function() {
                 waitCount++; if (waitCount <= 100) setTimeout(function(){buildCopyToClipboardForLogtext(waitCount);}, 100);
             }
             try {
-                if (typeof pageData !== 'undefined' && typeof pageData.logText !== 'undefined' && pageData.logText != '') {
+                // The icon is not always available for TB Logs.
+                // Background: After adding a TB log and after changing a TB log, you will automatically be taken to the View Log page. The View Log page
+                // is not accessed, only the page content is exchanged. Therefore the logtext is not available on the View Log page. See also pull request
+                // 2537 for further information.
+                if (!isTB && typeof pageData !== 'undefined' && typeof pageData.logText !== 'undefined' && pageData.logText != '') {
                     buildCopyToClipboardForLogtext(0);
                     css += 'li.meta-data-item:last-child {display: block;}';
                     css += 'li.meta-data-item:last-child > div {display: inline-block; margin-right: 8px;}';
@@ -14721,8 +14830,8 @@ var mainGC = function() {
 //--> $$002
         code += '<img src="https://c.andyhoppe.com/1643060379"' + prop; // Besucher
         code += '<img src="https://c.andyhoppe.com/1643060408"' + prop; // Seitenaufrufe
-        code += '<img src="https://s11.flagcounter.com/count2/gTcm/bg_FFFFFF/txt_000000/border_CCCCCC/columns_6/maxflags_60/viewers_0/labels_1/pageviews_1/flags_0/percent_0/"' + prop;
-        code += '<img src="https://www.worldflagcounter.com/iGf"' + prop;
+        code += '<img src="https://s11.flagcounter.com/count2/JmdN/bg_FFFFFF/txt_000000/border_CCCCCC/columns_6/maxflags_60/viewers_0/labels_1/pageviews_1/flags_0/percent_0/"' + prop;
+        code += '<img src="https://www.worldflagcounter.com/iGn"' + prop;
 //<-- $$002
         div.innerHTML = code;
         side.appendChild(div);
@@ -16102,7 +16211,7 @@ var mainGC = function() {
             html += thanksLineBuild("V60",                  "V60GC",                    false, false, false, true,  false);
             html += thanksLineBuild("vylda",                "",                         false, false, false, true,  false);
             html += thanksLineBuild("winkamol",             "",                         false, false, false, true,  false);
-            var thanksLastUpdate = "08.12.2023";
+            var thanksLastUpdate = "20.12.2023";
 //<-- $$006
             html += "    </tbody>";
             html += "</table>";
@@ -16824,9 +16933,12 @@ var mainGC = function() {
             html += newParameterVersionSetzen('0.12') + newParameterOff;
             var placeholderDescription = "Possible placeholders:<br>&nbsp; #Found# : Your founds + 1 (reduce it with a minus followed by a number)<br>&nbsp; #Found_no# : Your founds (reduce it with a minus followed by a number)<br>&nbsp; #Me# : Your username<br>&nbsp; #Owner# : Username of the owner<br>&nbsp; #Date# : Actual date<br>&nbsp; #Time# : Actual time in format hh:mm<br>&nbsp; #DateTime# : Actual date actual time<br>&nbsp; #GCTBName# : GC or TB name<br>&nbsp; #GCTBLink# : GC or TB link<br>&nbsp; #GCTBNameLink# : GC or TB name as a link<br>&nbsp; #LogDate# : Content of field \"Date Logged\"<br>(Upper and lower case is not required in the placeholders name.)";
             html += newParameterOn2;
+            html += checkboxy('settings_hide_locked_tbs_log_form', 'Hide locked trackables from trackable inventory') + show_help("A trackable can be marked as locked in the trackable listing. Locked trackables cannot be logged. With this option you can hide such trackables from trackable inventory.") + "<br>";
+            html += checkboxy('settings_hide_own_tbs_log_form', 'Hide own trackables from trackable inventory') + show_help("With this option you can hide your own trackables from trackable inventory.") + "<br>";
             html += checkboxy('settings_hide_share_log_button_log_view', 'Hide \"Share log\" button on view log page') + show_help("With this option you can hide the \"Share log\" button on page view geocache log.<br><br>If you just want to hide the social sharing icons for Facebook, Twitter (X) behind the \"Share log\" button instead, you can do this with the parameter \"Hide social sharing via Facebook, Twitter (X)\" in the \"Global - Hiding\" area.") + "<br>";
             html += checkboxy('settings_remove_target_log_form', 'Do not open links on log page automatic in new browser tab') + show_help("The links on the pages \"Log this geocache\" and \"Edit log\" will automatically open in a new tab. If you want to decide for yourself whether a link should open in the same browser tab or in a new one, you can choose this option.") + "<br>";
             html += checkboxy('settings_remove_target_log_view', 'Do not open links on view log page automatic in new browser tab') + show_help("The links on the page \"View geocache log\" will automatically open in a new tab. If you want to decide for yourself whether a link should open in the same browser tab or in a new one, you can choose this option.") + "<br>";
+            html += checkboxy('settings_button_sort_tbs_by_name_log_form', 'Enable sorting of trackables by name') + "<br>";
             html += checkboxy('settings_add_log_templates', 'Add log templates') + show_help("Log templates are predefined texts. All of your templates will be displayed on the log form. All you have to do is click on a template and it will be placed in your log. You can also use placeholders for variables that will be replaced in the log.") + " &nbsp; ( Possible placeholders" + show_help(placeholderDescription) + ")<br>";
             html += newParameterVersionSetzen('0.15') + newParameterOff;
             html += "<font class='gclh_small' style='font-style: italic; margin-left: 240px; margin-top: 25px; width: 320px; position: absolute; z-index: -1;' >Please note that log templates are useful for automatically entering the number of finds, the date of discovery and the like in the log, but that cache owners are people who are happy about individual logs for their cache. Geocaching is not just about pushing your own statistics, but also about experiencing something. Please take some time to give something back to the owners by telling them about your experiences and writing them good logs. Then there will also be cachers in the future who like to take the trouble to set up new caches. The log templates are useful, but can never replace a complete log.</font>";
@@ -18180,8 +18292,11 @@ var mainGC = function() {
                 'settings_improve_notifications',
                 'settings_remove_target_log_form',
                 'settings_remove_target_log_view',
+                'settings_hide_locked_tbs_log_form',
+                'settings_hide_own_tbs_log_form',
                 'settings_hide_share_log_button_log_view',
                 'settings_dashboard_hide_tb_activity',
+                'settings_button_sort_tbs_by_name_log_form',
             );
             for (var i = 0; i < checkboxes.length; i++) {
                 if (document.getElementById(checkboxes[i])) setValue(checkboxes[i], document.getElementById(checkboxes[i]).checked);
