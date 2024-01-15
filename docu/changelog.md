@@ -2,6 +2,8 @@
 <a href="//"><img src="https://img.shields.io/badge/dynamic/xml?url=http://c.andyhoppe.com/1676270686?output=text&label=installations&color=success&query=/" title="installations and updates"></a>
 <a href="//"><img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https://github.com/2Abendsegler/GClh/master/docu/changelog.md&count_bg=%2349c91b&title_bg=%23555555&icon=&title=hits&edge_flat=false" title="hits day / total"></a><br>
 <br>
+<a href="#v0155" title="GClh II version 0.15.5 (11.01.2024)">v0.15.5</a> &nbsp;
+<a href="#v0154" title="GClh II version 0.15.4 (09.01.2024)">v0.15.4</a> &nbsp;
 <a href="#v0153" title="GClh II version 0.15.3 (20.12.2023)">v0.15.3</a> &nbsp;
 <a href="#v0152" title="GClh II version 0.15.2 (09.12.2023)">v0.15.2</a> &nbsp;
 <a href="#v0151" title="GClh II version 0.15.1 (02.12.2023)">v0.15.1</a> &nbsp;
@@ -41,6 +43,36 @@
 <a href="#v011" title="GClh II version 0.11 (09.05.2021)">v0.11</a> &nbsp;
 <a href="changelog_before.md" title="Go to earlier changelog">Earlier changelog</a> &nbsp;
 <span id="readme"></span>
+
+---
+## v0.15.5:
+&nbsp; &nbsp; <img src="../images/flag_ua.png" alt="" title="Stand with Ukraine"><br>
+<ul>
+	<li>
+		<strong>New:</strong> [Log Form] Default logtypes run into error: can't convert null to object. [<a href="https://github.com/2Abendsegler/GClh/issues/2549" title="Issue 2549">2549</a> / <a href="https://www.geocaching.com/profile/?u=Die Batzen" title="Thanks to Die Batzen">Die Batzen</a>]<br><br>
+	</li>
+</ul>
+<br>
+(12.01.2024)<br>
+released by <a href="https://www.geocaching.com/profile/?u=2Abendsegler">2Abendsegler</a><br>
+<br>
+
+---
+## v0.15.4:
+&nbsp; &nbsp; <img src="../images/flag_ua.png" alt="" title="Stand with Ukraine"><br>
+<ul>
+	<li>
+		<strong>New:</strong> [Log Form] Setting default logtypes without page reload. [<a href="https://github.com/2Abendsegler/GClh/issues/2544" title="Issue 2544">2544</a> / <a href="https://www.geocaching.com/profile/?u=Die Batzen" title="Thanks to Die Batzen">Die Batzen</a>]<br><br>
+	</li>
+	<li>
+		<strong>New:</strong> [Search Map] Preserve a specified URL zoom parameter on page load. [<a href="https://github.com/2Abendsegler/GClh/issues/2545" title="Issue 2545">2545</a> / <a href="https://www.geocaching.com/profile/?u=Die Batzen" title="Thanks to Die Batzen">Die Batzen</a>]<br>
+		On page load a specified URL zoom parameter is ignored and zoom level is set to 14. This happens e.g. on <a href="https://www.geocaching.com/my/statistics.aspx#DifficultyTerrainCaches">mapped matrix searches</a>, calling the <a href="https://www.geocaching.com/play/map?lat=52.5245&lng=13.4101&zoom=16">search map from the browse map</a> or calling a stored search from a bookmark.<br><br>
+	</li>
+</ul>
+<br>
+(09.01.2024)<br>
+released by <a href="https://www.geocaching.com/profile/?u=2Abendsegler">2Abendsegler</a><br>
+<br>
 
 ---
 ## v0.15.3:
@@ -93,7 +125,7 @@
 	<li>
 		<strong>Fix:</strong> [Log Edit] Default log type must not be set in edit mode. [<a href="https://github.com/2Abendsegler/GClh/issues/2518" title="Issue 2518">2518</a> / <a href="https://www.geocaching.com/profile/?u=2Abendsegler" title="Thanks to 2Abendsegler">2Abendsegler</a>]<br>
 	</li>
-	</ul>
+</ul>
 <br>
 (20.12.2023)<br>
 released by <a href="https://www.geocaching.com/profile/?u=2Abendsegler">2Abendsegler</a><br>
@@ -119,7 +151,7 @@ released by <a href="https://www.geocaching.com/profile/?u=2Abendsegler">2Abends
 		<img src="../images/0.15.2/Screen05.gif" alt="Screen05.gif"><br>
 		You can also undo the deletion with one click.<br>
 	</li>
-	</ul>
+</ul>
 <br>
 (09.12.2023)<br>
 released by <a href="https://www.geocaching.com/profile/?u=2Abendsegler">2Abendsegler</a><br>
